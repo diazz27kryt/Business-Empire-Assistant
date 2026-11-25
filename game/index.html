@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Business Empire — Космическая империя</title>
+<style>
+:root{color-scheme:dark;--bg:#07090f;--panel:#111522;--line:#252c3d;--muted:#9ba6bc;--white:#f4f6fb}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% -10%,#29314a 0,transparent 38%),radial-gradient(ellipse at 10% 110%,#171d30 0,transparent 40%),var(--bg);color:var(--white);font:15px system-ui,Arial}
+header{padding:24px max(18px,calc((100% - 1100px)/2));border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:clamp(23px,5vw,34px);margin:0;letter-spacing:.04em}small,.muted{color:var(--muted)}main{max-width:1100px;margin:auto;padding:20px;display:grid;gap:16px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat,.panel,.tile{background:linear-gradient(145deg,#151b2a,#0d111b);border:1px solid var(--line);border-radius:16px;padding:16px}.stat b{display:block;font-size:clamp(19px,3vw,26px);margin-top:5px}
+nav{display:flex;gap:8px;flex-wrap:wrap}.tab,button{background:#1b2232;color:var(--white);border:1px solid #343e54;padding:10px 14px;border-radius:11px;font-weight:650;cursor:pointer}.tab.active,button.primary{background:#e8edf7;color:#0a0d14;border-color:#fff}.tab:disabled,button:disabled{opacity:.4;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}.tile h3{margin:0 0 6px}.tile p{color:var(--muted);min-height:38px}.tile button{width:100%;margin-top:8px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.bar{height:7px;background:#252c3d;border-radius:10px;overflow:hidden;margin:12px 0}.bar i{display:block;height:100%;background:#e8edf7;width:0}.hidden{display:none}.log{max-height:160px;overflow:auto;color:var(--muted);font-size:13px}.positive{color:#b8e6c6}.negative{color:#ffb5b5}
+@media(max-width:620px){.stats{grid-template-columns:repeat(2,1fr)}header{align-items:flex-start;flex-direction:column}main{padding:13px}}
+</style></head>
+<body>
+<header><div><h1>BUSINESS EMPIRE</h1><small>BUILD YOUR OWN GALAXY OF BUSINESS</small></div><div class="muted">Сохранение включено · Автосейв</div></header>
+<main>
+<section class="stats">
+<div class="stat"><small>Деньги</small><b id="cash">$10 000</b></div><div class="stat"><small>Доход / сек</small><b id="income">$0</b></div><div class="stat"><small>Общий капитал</small><b id="net">$10 000</b></div><div class="stat"><small>День империи</small><b id="day">1</b></div>
+</section>
+<nav><button class="tab active" data-tab="business">Бизнес</button><button class="tab" data-tab="assets">Активы</button><button class="tab" data-tab="market">Биржа</button><button class="tab" data-tab="events">События</button></nav>
+<section id="business" class="panel"><div class="row"><div><h2>Твоя империя</h2><small>Покупай компании, улучшай их и увеличивай прибыль.</small></div><b id="owned">0 компаний</b></div><div class="grid" id="businessList"></div></section>
+<section id="assets" class="panel hidden"><h2>Активы и развитие</h2><div class="grid" id="assetList"></div></section>
+<section id="market" class="panel hidden"><div class="row"><div><h2>Фондовая биржа</h2><small>Цены меняются со временем. Это виртуальный рынок.</small></div><b>Капитал: <span id="portfolio">$0</span></b></div><div class="grid" id="stockList"></div></section>
+<section id="events" class="panel hidden"><h2>Новости экономики</h2><p class="muted">События влияют на спрос и стоимость компаний.</p><div id="eventText">На рынке спокойно. Открывай первое дело!</div><hr style="border-color:var(--line)"><div class="log" id="log">Империя создана. Время начать!</div></section>
+<section class="panel"><div class="row"><b>Экономический цикл</b><small id="status">Работаем над ростом</small></div><div class="bar"><i id="progress"></i></div><div class="row"><small>Следующий игровой день</small><small id="timer">24 сек</small></div><div class="row" style="margin-top:12px"><button id="save">Сохранить</button><button id="reset">Начать заново</button></div></section>
+</main>
+<script>
+const $=id=>document.getElementById(id), money=n=>'$'+Math.floor(n).toLocaleString('en-US');
+const defs=[['Кофейня','Небольшое кафе у дома',2500,12],['Продуктовый магазин','Продажи каждый игровой день',8000,42],['Автомойка','Стабильный поток клиентов',18000,105],['IT-стартап','Разработка цифровых продуктов',50000,340],['Завод','Крупное производство',150000,1150],['Космическая корпорация','Технологии следующего поколения',600000,5200]];
+const stocks=[['NOVA','Технологии',120],['ORBIT','Космос',85],['POLAR','Энергетика',64],['ATLAS','Промышленность',150]];
+const initial=()=>({cash:10000,day:1,owned:{},levels:{},shares:{},prices:stocks.map(s=>s[2]),log:['Империя создана. Время начать!'],event:'На рынке спокойно. Открывай первое дело!',elapsed:0});
+let s;try{s=JSON.parse(localStorage.empireSave)||initial()}catch{s=initial()}
+function save(){localStorage.empireSave=JSON.stringify(s);$('status').textContent='Прогресс сохранён'}
+function addLog(t){s.log.unshift('День '+s.day+': '+t);s.log=s.log.slice(0,30);$('log').innerHTML=s.log.map(x=>'<div>'+x+'</div>').join('')}
+function income(){return defs.reduce((a,d,i)=>a+(s.owned[i]||0)*d[3]*(1+(s.levels[i]||0)*.5),0)}
+function net(){return s.cash+defs.reduce((a,d,i)=>a+(s.owned[i]||0)*d[2],0)+s.prices.reduce((a,p,i)=>a+p*(s.shares[i]||0),0)}
+function render(){
+$('cash').textContent=money(s.cash);$('income').textContent=money(income());$('net').textContent=money(net());$('day').textContent=s.day;
+$('owned').textContent=Object.values(s.owned).reduce((a,b)=>a+b,0)+' компаний';$('portfolio').textContent=money(s.prices.reduce((a,p,i)=>a+p*(s.shares[i]||0),0));
+$('businessList').innerHTML=defs.map((d,i)=>{let count=s.owned[i]||0,cost=Math.floor(d[2]*Math.pow(1.16,count));return '<article class="tile"><h3>'+d[0]+'</h3><p>'+d[1]+'</p><div class="row"><small>В собственности: '+count+'</small><b>'+money(d[3]*(1+(s.levels[i]||0)*.5))+'/с</b></div><button class="primary" '+(s.cash<cost?'disabled':'')+' onclick="buy('+i+')">Купить · '+money(cost)+'</button></article>'}).join('');
+$('assetList').innerHTML=defs.map((d,i)=>{let count=s.owned[i]||0,cost=Math.floor(d[2]*.8*Math.pow(1.8,s.levels[i]||0));return '<article class="tile"><h3>'+d[0]+'</h3><p>Уровень '+(s.levels[i]||0)+' · '+count+' объектов</p><p>Улучшение повышает доход на 50%.</p><button '+(!count||s.cash<cost?'disabled':'')+' onclick="upgrade('+i+')">Улучшить · '+money(cost)+'</button></article>'}).join('');
+$('stockList').innerHTML=stocks.map((d,i)=>{let owned=s.shares[i]||0,p=s.prices[i],change=(p-d[2])/d[2]*100;return '<article class="tile"><h3>'+d[0]+' <small>'+d[1]+'</small></h3><b>'+money(p)+'</b><p class="'+(change>=0?'positive':'negative')+'">'+(change>=0?'+':'')+change.toFixed(1)+'% · У тебя: '+owned+' шт.</p><div class="row"><button '+(s.cash<p?'disabled':'')+' onclick="trade('+i+',1)">Купить 1</button><button '+(!owned?'disabled':'')+' onclick="trade('+i+',-1)">Продать 1</button></div></article>'}).join('');
+$('eventText').textContent=s.event;$('log').innerHTML=s.log.map(x=>'<div>'+x+'</div>').join('');
+}
+function buy(i){let d=defs[i],cost=Math.floor(d[2]*Math.pow(1.16,s.owned[i]||0));if(s.cash<cost)return;s.cash-=cost;s.owned[i]=(s.owned[i]||0)+1;addLog('Куплена компания: '+d[0]);render();save()}
+function upgrade(i){let d=defs[i],cost=Math.floor(d[2]*.8*Math.pow(1.8,s.levels[i]||0));if(!s.owned[i]||s.cash<cost)return;s.cash-=cost;s.levels[i]=(s.levels[i]||0)+1;addLog('Улучшение: '+d[0]+' до уровня '+s.levels[i]);render();save()}
+function trade(i,dir){let p=s.prices[i];if(dir>0&&s.cash>=p){s.cash-=p;s.shares[i]=(s.shares[i]||0)+1;addLog('Куплена акция '+stocks[i][0]+' за '+money(p))}else if(dir<0&&(s.shares[i]||0)>0){s.cash+=p;s.shares[i]--;addLog('Продана акция '+stocks[i][0]+' за '+money(p))}render();save()}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));['business','assets','market','events'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.tab))});
+$('save').onclick=save;$('reset').onclick=()=>{if(confirm('Сбросить весь прогресс?')){s=initial();save();render()}};
+setInterval(()=>{s.elapsed++;s.cash+=income();if(s.elapsed%24===0){s.day++;s.prices=s.prices.map(p=>Math.max(5,p*(1+(Math.random()-.47)*.12)));if(Math.random()<.35){let events=['Рост спроса увеличил доход бизнеса на этот день!','На рынке оптимизм: акции немного выросли.','Экономика замедлилась, но твои компании продолжают работать.','Новый технологический тренд привлёк инвесторов.'];s.event=events[Math.floor(Math.random()*events.length)];addLog(s.event)}save()}$('progress').style.width=(s.elapsed%24)/24*100+'%';$('timer').textContent=(24-s.elapsed%24)+' сек';render()},1000);
+render();
+</script></body></html>
